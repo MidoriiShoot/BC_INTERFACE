@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BC Novanet - BBDD</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #1e293b;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+
+        /* Animations */
+        @keyframes fade-in-up {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .animate-fade-in-up {
+            animation: fade-in-up 0.3s ease-out forwards;
+        }
+        
+        @keyframes bounce-dot {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-3px); }
+        }
+        .animate-bounce-dot {
+            animation: bounce-dot 0.6s infinite;
+        }
+        
+        .code-keyword { color: #60a5fa; font-weight: bold; } /* blue-400 */
+        .code-function { color: #c084fc; } /* purple-400 */
+        .code-comment { color: #6b7280; font-style: italic; font-family: monospace; } /* gray-500 */
+        .highlight-bg { background-color: #fef08a; color: #111827; font-weight: 600; padding: 0 2px; border-radius: 2px; }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans text-gray-900 selection:bg-blue-100 selection:text-blue-900 h-screen overflow-hidden flex relative">
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="fixed bottom-6 right-6 z-50 pointer-events-none flex flex-col items-end gap-2"></div>
+
+    <!-- Sidebar -->
+    <aside class="w-64 bg-slate-900 text-white flex flex-col h-full fixed md:relative z-20 transition-transform duration-300 transform -translate-x-full md:translate-x-0" id="sidebar">
+        <div class="p-6 flex items-center space-x-3 border-b border-slate-700 bg-slate-900 sticky top-0 z-20">
+            <!-- Icon Database -->
+            <svg class="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg>
+            <span class="font-bold text-lg tracking-tight">BC Novanet</span>
+        </div>
+
+        <nav class="flex-1 px-3 py-6 space-y-1 overflow-y-auto custom-scrollbar" id="sidebar-nav">
+            <!-- Navigation will be injected here -->
+        </nav>
+        
+        <div class="p-4 border-t border-slate-800 text-xs text-slate-500 text-center bg-slate-900 sticky bottom-0">
+            v8.0 - Vanilla JS Version
+        </div>
+    </aside>
+
+    <!-- Overlay for mobile sidebar -->
+    <div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-10 hidden md:hidden glass"></div>
+
+    <!-- Main Content -->
+    <div class="flex-1 flex flex-col h-full overflow-hidden relative w-full">
+        
+        <!-- Header Mobile -->
+        <div class="md:hidden bg-slate-900 text-white p-4 flex justify-between items-center z-20 shadow-md">
+            <div class="flex items-center space-x-2">
+                <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg>
+                <span class="font-bold text-lg">BC Novanet</span>
+            </div>
+            <button id="mobile-menu-btn" class="text-white p-1">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+            </button>
+        </div>
+
+        <main class="flex-1 overflow-y-auto p-4 md:p-8 pt-4 scroll-smooth bg-gray-50/50" id="main-scroll">
+            <div class="max-w-6xl mx-auto pb-20">
+                <!-- Search Bar -->
+                <div class="relative mb-8 group">
+                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <svg class="h-5 w-5 text-gray-400 group-focus-within:text-blue-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    </div>
+                    <input
+                        type="text"
+                        id="search-input"
+                        class="block w-full pl-11 pr-4 py-4 bg-white border border-gray-200 rounded-xl leading-5 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm transition-all text-base"
+                        placeholder="Buscar en Módulos (título, descripción, código SQL)..."
+                    />
+                </div>
+
+                <!-- Content Area -->
+                <div id="content-area"></div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Chat Widget -->
+    <div class="fixed bottom-6 right-6 z-40 flex flex-col items-end font-sans">
+        <!-- Chat Window -->
+        <div id="chat-window" class="hidden bg-white w-80 md:w-96 h-[500px] rounded-2xl shadow-2xl border border-gray-200 flex flex-col mb-4 animate-fade-in-up overflow-hidden">
+            <!-- Chat Header -->
+            <div class="bg-blue-600 p-4 flex justify-between items-center text-white">
+                <div class="flex items-center space-x-2">
+                    <div class="p-1.5 bg-white/20 rounded-full">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path></svg>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-sm">Asistente IA</h3>
+                        <p class="text-xs text-blue-100 flex items-center">
+                            <span class="w-2 h-2 bg-green-400 rounded-full mr-1"></span>
+                            En línea
+                        </p>
+                    </div>
+                </div>
+                <button id="close-chat-btn" class="hover:bg-white/20 p-1 rounded transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+
+            <!-- Chat Messages -->
+            <div id="chat-messages" class="flex-1 overflow-y-auto p-4 bg-gray-50 space-y-4">
+                <!-- Initial Message -->
+                <div class="flex justify-start">
+                    <div class="max-w-[85%] rounded-2xl px-4 py-3 text-sm shadow-sm bg-white text-gray-800 border border-gray-200 rounded-bl-none">
+                        <p>Hola, soy tu asistente de BC Novanet. ¿En qué puedo ayudarte hoy?</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat Input -->
+            <div class="p-4 bg-white border-t border-gray-100">
+                <div class="flex items-center space-x-2">
+                    <input type="text" id="chat-input" placeholder="Escribe tu consulta..." class="flex-1 bg-gray-100 border-0 rounded-full px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none">
+                    <button id="send-chat-btn" class="p-2.5 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:opacity-50 transition-colors shadow-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- FAB Button -->
+        <button id="chat-fab" class="p-4 rounded-full shadow-lg transition-all transform hover:scale-105 bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
+        </button>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // --- DATA ---
+        // Sincronizada con el contenido de React
+        const KNOWLEDGE_BASE = [
+          {
+            id: 'actas', title: 'Actas', icon: 'file-text', color: 'bg-blue-600',
+            items: [
+              { id: 'a1', title: 'Licencia Manual Puesta en el Equipo Equivocado. (JL)', type: 'Procedure', tags: ['Actas', 'Licencias'], note: 'Se cambia el codequipo en nfg_cmp_participantes_actas y se debe revisar si afecta en nfg_cmp_sanciones. Si hay sanción, revisar también nfg_cmp_amonestaciones.' },
+              { id: 'a2', title: 'Actas Delegaciones Madrid', type: 'SQL', tags: ['Incidencia', 'Usuarios'], description: 'Causa habitual: El usuario del árbitro en la delegación no coincide con el de Madrid.', content: "-- 1. Verificar usuario y vínculo\nSELECT * FROM ffm.guf_usuarios g JOIN ffm.nfg_cmp_arbitros_guf_usuarios ag ON ag.codusuario=g.cod_usuario...\n-- 2. Comprobar usuario delegación\nSELECT * FROM del.guf_usuarios...\n-- 3. Ver/actualizar contraseña\nSELECT AES_DECRYPT(clave1,'FFM05307')..." },
+              { id: 'a3', title: 'Detectar Antes de Partido Actas que No podran Abrir', type: 'SQL', tags: ['Incidencia', 'Árbitros'], description: 'Detectar árbitros que no disponen de usuario en la delegación correspondiente.', content: "SELECT da.codarbitro, g.codigo_usr, d.coddesignacion, SUBSTR(p.referencia,1,3) AS numero_delegacion, del.cod_portal\nFROM ffm.nfg_ca_designaciones_arbitros da..." },
+              { id: 'a4', title: 'Regenerar PDF Actas / Regenerar Actas PDF', type: 'Procedure', tags: ['Batch', 'PDF'], description: 'Regenerar actas por batch.', content: "INSERT INTO n_batch_exec (COD_PORTAL, NUM_COLA...)\nSELECT 100,1,101,NOW()... FROM nfg_cmp_actas a WHERE a.cod_portal=100 AND a.cerrada=1..." }
+            ]
+          },
+          {
+            id: 'arbitros', title: 'Árbitros', icon: 'user-check', color: 'bg-red-500',
+            items: [
+              { id: 'ar1', title: 'Renovaciones Árbitros', type: 'SQL', tags: ['Incidencia'], description: 'Si el checkbox para iniciar el proceso de renovación no puede seleccionarse.', content: "SELECT * FROM nfg_cmp_arbitros_moderar WHERE finalizar = 0 AND SOLICITAR_COLEGIACION = 0" },
+              { id: 'ar2', title: 'Informe número de designaciones', type: 'SQL', tags: ['Informe'], content: "-- ARBITROS Y ASISTENTES\nSELECT IF(a.codtipo_arbitro=100,...) Categoria..." },
+              { id: 'ar3', title: 'Informe-Clasificación de Arb/Asis', type: 'SQL', tags: ['Informe', 'Clasificación'], content: "SELECT codigo_colegiado, nombre_arbitro, AVG(puntuacion)... FROM (SELECT ordered.*..." },
+              { id: 'ar4', title: 'Sacar puntuación media clasificación', type: 'SQL', tags: ['Informe'], content: "SELECT a.codigo_colegiado... ORDER BY AVG(da.puntuacion) DESC" },
+              { id: 'ar5', title: 'Designaciones sin Informes Generados', type: 'SQL', tags: ['Control'], content: "SELECT * FROM nfg_ca_designaciones_arbitros d WHERE... AND NOT EXISTS(SELECT 1 FROM nfg_ca_informes i...)" },
+              { id: 'ar6', title: 'Activar autoevaluaciones', type: 'Procedure', tags: ['Configuración'], description: 'Configuración de parámetros.', content: "Parámetros:\nCA_Autoevaluacion -> True..." },
+              { id: 'ar7', title: 'Cambiar liquidación/recibo equipo 59487', type: 'SQL', tags: ['Gestión Económica'], content: "UPDATE nfg_cf_saldos SET clave_acceso= *codigo club* WHERE..." },
+              { id: 'ar8', title: 'Generación cuotas (arbitraje)', type: 'SQL', tags: ['Gestión Económica'], description: 'Generar automáticamente el tercer plazo.', content: "SET @numero=0;\nINSERT INTO nfg_ca_cuotas...\nSELECT 100, @numero:=@numero+1..." },
+              { id: 'ar9', title: 'Recuperar designación original borrada', type: 'Procedure', tags: ['Designaciones'], content: "1. Localizar designación borrada...\n2. Poner Estado=1 y Codacta correcto..." },
+              { id: 'ar10', title: 'Si no sale el partido para designar', type: 'Note', tags: ['Designaciones', 'Incidencia'], note: 'A revisar: Hora del partido, Campo asignado, Delegación, TODOS EN EL MISMO COMITÉ.' }
+            ]
+          },
+          {
+            id: 'aula', title: 'Aula Virtual', icon: 'graduation-cap', color: 'bg-indigo-500',
+            items: [
+                { id: 'aul1', title: 'Recuperar Preguntas', type: 'SQL', tags: ['Formación'], description: 'Query para recuperar las respuestas.', content: "INSERT INTO nfg_av_respuestas...\nSELECT 100, rc.cod_respuesta..." }
+            ]
+          },
+          {
+            id: 'baja', title: 'Baja Equipos', icon: 'user-minus', color: 'bg-slate-500',
+            items: [
+                { id: 'baj1', title: 'Equipos no renovados sin baja', type: 'SQL', tags: ['Equipos'], content: "SELECT l.* FROM nfg_licencias l WHERE... AND EXISTS (SELECT 1 FROM nfg_equipos e...)" }
+            ]
+          },
+          {
+            id: 'comp', title: 'Competiciones', icon: 'trophy', color: 'bg-yellow-500',
+            items: [
+                { id: 'com1', title: 'Añadir/Modificar categoría', type: 'Procedure', tags: ['Configuración'], description: 'El orden indica cual es la principal.', note: '0 -> Principal, 1 -> Resto' },
+                { id: 'com2', title: 'Cambia Temporada Playa', type: 'SQL', tags: ['Update'], content: "SELECT GROUP_CONCAT(codgrupo)...\nUPDATE nfg_cmp_actas..." },
+                { id: 'com3', title: 'PDF no salen equipos', type: 'SQL', tags: ['Incidencia'], content: "SELECT e.codequipo... FROM nfg_cmp_clubes c..." },
+                { id: 'com4', title: 'Cambio de equipo competición empezada', type: 'Procedure', tags: ['Incidencia'], description: 'Tablas afectadas.', content: "nfg_cmp_grupos_equipos\nnfg_cmp_actas..." },
+                { id: 'com5', title: 'Añadir equipos a partido a vuelta', type: 'Procedure', tags: ['Incidencia'], content: "Se pone el codequipo_casa y codequipo_fuera en nfg_cmp_partidos..." },
+                { id: 'com6', title: 'Competición comparte sanciones', type: 'Procedure', tags: ['Configuración'], content: "Se añade en nfg_cmp_comp_comp..." },
+                { id: 'com7', title: 'Fechas última jornada', type: 'SQL', tags: ['Informe'], content: "SELECT c.nombre_competicion... MAX(fj.fecha)..." },
+                { id: 'com8', title: 'Asignar fecha Jornada', type: 'SQL', tags: ['Update'], content: "UPDATE nfg_cmp_actas a... SET a.fecha=f.fecha..." },
+                { id: 'com9', title: 'Eliminar Horarios Campo', type: 'SQL', tags: ['Incidencia'], content: "UPDATE nfg_cmp_historico_horarios SET cod_portal=99..." }
+            ]
+          },
+          {
+            id: 'ent', title: 'Entrenadores', icon: 'clipboard-list', color: 'bg-teal-600',
+            items: [
+                { id: 'ent1', title: 'Añadir plantilla contrato', type: 'Procedure', tags: ['Configuración'], content: "UPDATE nfg_ce_clases_contrato SET plantilla..." },
+                { id: 'ent2', title: 'Modificar Importe Cuota', type: 'SQL', tags: ['Corrección'], content: "SELECT * FROM nfg_ce_cuotas..." },
+                { id: 'ent3', title: 'URLs inscripción online', type: 'Note', tags: ['Listado'], note: 'Baleares, Rioja, Galicia...' },
+                { id: 'ent4', title: 'Entrenadores Fotos Histórico', type: 'SQL', tags: ['Imágenes'], content: "SELECT li.* FROM nfg_licencias_imagenes..." },
+                { id: 'ent5', title: 'Eliminar cuotas', type: 'SQL', tags: ['Corrección'], content: "SELECT * FROM nfg_ce_cuotas..." },
+                { id: 'ent6', title: 'Actualizar cuotas pagadas', type: 'SQL', tags: ['Corrección'], content: "SELECT * FROM nfg_ce_cuotas..." },
+                { id: 'ent7', title: 'Eliminar entrenador', type: 'Procedure', tags: ['Baja'], content: "Tablas: nfg_ce_personas_inscritas..." },
+                { id: 'ent8', title: 'Fusionar entrenadores CTE', type: 'SQL', tags: ['Mantenimiento'], content: "SELECT * FROM nfg_ce_personas WHERE..." }
+            ]
+          },
+          {
+            id: 'gen', title: 'General', icon: 'settings', color: 'bg-gray-600',
+            items: [
+                { id: 'gen1', title: 'Temporada por defecto', type: 'Config', tags: ['UX'], description: 'Query para limitar combo temporadas.', content: "SELECT cod_temporada... ORDER BY nombre DESC LIMIT 5" },
+                { id: 'gen2', title: 'IP Baneada', type: 'Procedure', tags: ['Acceso'], content: "Eliminar en n_ipbanned." },
+                { id: 'gen3', title: 'Tarjetas Pruebas', type: 'Note', tags: ['Pruebas'], note: 'OK: 4548812049400004\nKO: 1111 1111 1111 1117' },
+                { id: 'gen4', title: 'Desencriptar contraseña', type: 'SQL', tags: ['Seguridad'], content: "SELECT AES_DECRYPT..." },
+                { id: 'gen5', title: 'Buscar columnas', type: 'SQL', tags: ['Dev'], content: "SELECT DISTINCT TABLE_NAME..." },
+                { id: 'gen6', title: 'Saltarse Foreign KEY', type: 'SQL', tags: ['Admin'], content: "SET FOREIGN_KEY_CHECKS=0" }
+            ]
+          },
+          {
+            id: 'eco', title: 'Gestión Económica', icon: 'euro', color: 'bg-emerald-600',
+            items: [
+                { id: 'eco1', title: 'Mover liquidación caja', type: 'Procedure', tags: ['Contabilidad'], description: 'Tablas afectadas: nfg_boletin...', content: "UPDATE nfg_caja_movimientos SET cod_caja..." },
+                { id: 'eco2', title: 'Facturación', type: 'Note', tags: ['Info'], note: 'Verificar procedimientos.' },
+                { id: 'eco3', title: 'Pago transferencia no asociado', type: 'SQL', tags: ['Incidencia'], content: "SELECT f.ID_PERSONA... FROM nfg_pf_operaciones_pasarela..." },
+                { id: 'eco4', title: 'Métodos Pago Online', type: 'Note', tags: ['Configuración'], note: 'Revisar nfg_forma_pagos.' },
+                { id: 'eco5', title: 'Cambiar liquidación equipo', type: 'SQL', tags: ['Corrección'], content: "UPDATE nfg_cf_saldos SET clave_acceso..." }
+            ]
+          },
+          {
+            id: 'lic', title: 'Licencias', icon: 'badge-check', color: 'bg-green-600',
+            items: [
+                { id: 'li1', title: 'Eliminar fichero tramitación', type: 'Procedure', tags: ['Tramitación'], content: "Cambiar cod_portal a 90 en nfg_ficheros_adjuntos_pre." },
+                { id: 'li2', title: 'Evento alta sin activación', type: 'SQL', tags: ['Incidencia'], content: "SELECT DISTINCT e.id_persona FROM nfg_rfef_com_eventos..." },
+                { id: 'li3', title: 'Carga Externa', type: 'Note', tags: ['Info'], note: '1 vez al día (1:30h).' },
+                { id: 'li4', title: 'Recuperar licencia borrada', type: 'SQL', tags: ['Insert'], content: "INSERT INTO nfg_licencias... FROM nfg_licencias_borradas..." },
+                { id: 'li5', title: 'Regeneración imagen activa', type: 'Procedure', tags: ['Configuración'], content: "nfg_tipos_ficheros -> ES_Licencia = 2" },
+                { id: 'li6', title: 'Licencias sin código barras', type: 'SQL', tags: ['Corrección'], content: "UPDATE nfg_licencias l... SET l.codigo_barras..." },
+                { id: 'li7', title: 'Cambiar Periodos Inscripción', type: 'Procedure', tags: ['Configuración'], content: "Actualizar nfg_categorias..." },
+                { id: 'li8', title: 'Mandar imagen histórico', type: 'SQL', tags: ['Mantenimiento'], content: "UPDATE nfg_licencias_imagenes..." },
+                { id: 'li9', title: 'Plantilla vinculaciones', type: 'Note', tags: ['Info'], note: 'NFG_PF_MntFEderado' },
+                { id: 'li10', title: 'Documentos pedidos', type: 'SQL', tags: ['Tramitación'], content: "SELECT * FROM (SELECT tf.nombre...)" },
+                { id: 'li11', title: 'Insert nfg_cmp_equipos', type: 'SQL', tags: ['Equipos'], content: "INSERT INTO nfg_cmp_equipos..." },
+                { id: 'li12', title: 'Personas activas con equipo', type: 'SQL', tags: ['Informe'], content: "SELECT l.nombre... FROM nfg_licencias..." },
+                { id: 'li13', title: 'Licencias sin límite', type: 'SQL', tags: ['Control'], content: "SELECT l.id_persona... WHERE l.fecha_limite IS NULL" },
+                { id: 'li14', title: 'Firma docs online', type: 'Procedure', tags: ['Configuración'], content: "firmas_configuradas=1" }
+            ]
+          },
+          {
+            id: 'mut', title: 'Mutualidad', icon: 'stethoscope', color: 'bg-rose-500',
+            items: [
+                { id: 'mu1', title: 'Informe Reconocimientos', type: 'SQL', tags: ['Informe'], content: "SELECT kk.medico... UNION SELECT..." },
+                { id: 'mu2', title: 'Informe Intervenciones', type: 'SQL', tags: ['Informe'], content: "SELECT ... FROM mf_hm_revisiones_actos_medicos..." },
+                { id: 'mu3', title: 'Volcar alta/baja médica', type: 'Procedure', tags: ['Sincronización'], content: "Enviado NULL -> NFG_MF_Eventos_RecepcionSiniestro" },
+                { id: 'mu4', title: 'Cambio ID Mutualista', type: 'SQL', tags: ['Corrección'], content: "SELECT * FROM MF_MUTUALISTAS..." },
+                { id: 'mu5', title: 'Volcar cuota Mut a Fed', type: 'Procedure', tags: ['Batch'], content: "adm_envio_cuotas" },
+                { id: 'mu6', title: 'Tareas programadas', type: 'Note', tags: ['Info'], note: 'NFG_MF_Eventos_TareasPeriodicas' },
+                { id: 'mu7', title: 'Contabilizar boletines', type: 'Procedure', tags: ['Batch'], content: "MF_Cont_EnvioBoletin_Delegaciones_Hist" },
+                { id: 'mu8', title: 'Volcar rec. médicos', type: 'Procedure', tags: ['Integración'], content: "NFG_MF_Eventos_Recepcion_Reconocimientos -> MF_MUT_API" },
+                { id: 'mu9', title: 'Fechas incorrectas', type: 'Note', tags: ['Corrección'], note: 'Cambiar en nfg_historial_medico' }
+            ]
+          },
+          {
+            id: 'inf', title: 'Informes', icon: 'bar-chart', color: 'bg-cyan-600',
+            items: [ { id: 'inf1', title: 'Nº licencias/club', type: 'SQL', tags: ['Estadística'], content: "SELECT c.clave_acceso..." } ]
+          },
+          {
+            id: 'por', title: 'Portal Federado', icon: 'layout', color: 'bg-violet-600',
+            items: [ { id: 'por1', title: 'Email/Tlf bloqueado', type: 'SQL', tags: ['Incidencia'], content: "SELECT * FROM nfg_licencias..." } ]
+          },
+          {
+            id: 'rfe', title: 'RFEF', icon: 'flag', color: 'bg-red-700',
+            items: [
+                { id: 'rfe1', title: 'Cambiar estado aviso', type: 'SQL', tags: ['Update'], content: "UPDATE nfg_rfef_com_lic_avisos..." },
+                { id: 'rfe2', title: 'Avisos RFEF (botones)', type: 'Procedure', tags: ['Configuración'], content: "Revisar nfg_rfef_com_mensajes" }
+            ]
+          },
+          {
+            id: 'san', title: 'Sanciones', icon: 'alert-triangle', color: 'bg-orange-600',
+            items: [
+                { id: 'san1', title: 'Informe Tarjetas (Comp)', type: 'SQL', tags: ['Informe'], content: "SELECT ... FROM nfg_cmp_grupos..." },
+                { id: 'san2', title: 'Revisar sanciones', type: 'Note', tags: ['Info'], note: 'Tipos: 100, 111, 112...' },
+                { id: 'san3', title: 'Informe Tarjetas (Grupo)', type: 'SQL', tags: ['Informe'], content: "SELECT ... FROM nfg_cmp_grupos..." }
+            ]
+          },
+          {
+            id: 'sel', title: 'Selecciones', icon: 'users', color: 'bg-pink-600',
+            items: [
+                { id: 'sel1', title: 'Censo Jugadores (>18)', type: 'SQL', tags: ['Censo'], content: "SELECT ... INTERVAL -18 YEAR..." },
+                { id: 'sel2', title: 'Censo Jugadores (>16)', type: 'SQL', tags: ['Censo'], content: "SELECT ... INTERVAL -16 YEAR..." },
+                { id: 'sel3', title: 'Censo Árbitros (>18)', type: 'SQL', tags: ['Censo'], content: "SELECT ... INTERVAL -18 YEAR..." },
+                { id: 'sel4', title: 'Censo Árbitros (>16)', type: 'SQL', tags: ['Censo'], content: "SELECT ... INTERVAL -16 YEAR..." },
+                { id: 'sel5', title: 'Jugadores >1 Selección', type: 'SQL', tags: ['Informe'], content: "SELECT ... HAVING COUNT..." },
+                { id: 'sel6', title: 'Jugadores por Selección', type: 'SQL', tags: ['Informe'], content: "SELECT ... WHERE c.cod_seleccion IN..." },
+                { id: 'sel7', title: 'Usuarios Alineaciones', type: 'Procedure', tags: ['Incidencia'], content: "Borrar nfg_sel_asociados_guf_usuarios" }
+            ]
+          },
+          {
+            id: 'tra', title: 'Traducciones', icon: 'globe', color: 'bg-amber-500',
+            items: [
+                { id: 'tra1', title: 'Path cabeceras/pies', type: 'Note', tags: ['Ruta'], note: '\\\\192.168.10.216\\Proyectos...' },
+                { id: 'tra2', title: 'Traducción Menú', type: 'Note', tags: ['Configuración'], note: 'En la territorial.' },
+                { id: 'tra3', title: 'Traducción', type: 'Procedure', tags: ['Configuración'], content: 'Tabla n_idiomastextos. Instalar plantillas.' }
+            ]
+          }
+        ];
+
+        // --- ICONS (SVG Strings) ---
+        const ICONS = {
+            'file-text': '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>',
+            'user-check': '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7zm0 5a1.5 1.5 0 110-3 1.5 1.5 0 010 3z"></path></svg>',
+            'graduation-cap': '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"></path></svg>',
+            'user-minus': '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12h-6"></path></svg>',
+            'trophy': '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 21h8M12 17a2 2 0 100-4 2 2 0 000 4zm0 0V3m0 3h0m0-3a3 3 0 00-3 3v2a3 3 0 003 3 3 3 0 003-3V6a3 3 0 00-3-3z"></path></svg>',
+            'clipboard-list': '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>',
+            'settings': '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>',
+            'euro': '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.121 15.536c-1.171 1.952-3.07 1.952-4.242 0-1.172-1.953-1.172-5.119 0-7.072 1.171-1.952 3.07-1.952 4.242 0M8 10.5h4m-4 3h4"></path></svg>',
+            'badge-check': '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>',
+            'stethoscope': '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>',
+            'bar-chart': '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2z"></path></svg>',
+            'layout': '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>',
+            'flag': '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21v-8a2 2 0 012-2h.93a2 2 0 001.664.89l.812 1.22A2 2 0 0110.07 16h3.982a2 2 0 011.992-2.181l.637-.637A2 2 0 0019.5 13.5V5.25a.75.75 0 00-.75-.75h-3.75a2.25 2.25 0 01-2.25-2.25h-3.75a.75.75 0 00-.75.75v8.25"></path></svg>',
+            'alert-triangle': '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>',
+            'users': '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>',
+            'globe': '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>'
+        };
+
+        // --- STATE ---
+        let state = {
+            activeTab: 'dashboard',
+            searchTerm: '',
+            selectedItem: null,
+            isMenuOpen: false
+        };
+
+        // --- ELEMENTS ---
+        const els = {
+            sidebarNav: document.getElementById('sidebar-nav'),
+            contentArea: document.getElementById('content-area'),
+            searchInput: document.getElementById('search-input'),
+            toastContainer: document.getElementById('toast-container'),
+            mobileMenuBtn: document.getElementById('mobile-menu-btn'),
+            sidebar: document.getElementById('sidebar'),
+            sidebarOverlay: document.getElementById('sidebar-overlay'),
+            chatWindow: document.getElementById('chat-window'),
+            chatFab: document.getElementById('chat-fab'),
+            closeChatBtn: document.getElementById('close-chat-btn'),
+            sendChatBtn: document.getElementById('send-chat-btn'),
+            chatInput: document.getElementById('chat-input'),
+            chatMessages: document.getElementById('chat-messages'),
+            mainScroll: document.getElementById('main-scroll')
+        };
+
+        // --- RENDER FUNCTIONS ---
+
+        function renderSidebar() {
+            els.sidebarNav.innerHTML = `
+                <button onclick="navigate('dashboard')" class="w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors mb-4 ${state.activeTab === 'dashboard' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                    <span class="font-medium">Inicio</span>
+                </button>
+                
+                <div class="px-4 py-2 text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center">
+                    <span class="mr-1">#</span> Módulos
+                </div>
+            ` + KNOWLEDGE_BASE.map(cat => `
+                <button onclick="navigate('${cat.id}')" class="w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg transition-all duration-200 group ${state.activeTab === cat.id ? 'bg-slate-800 text-blue-400 border-r-4 border-blue-500' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}">
+                    <div class="${state.activeTab === cat.id ? 'text-blue-400' : 'text-slate-500 group-hover:text-white'}">
+                        ${ICONS[cat.icon]}
+                    </div>
+                    <span class="font-medium text-sm truncate">${cat.title}</span>
+                </button>
+            `).join('');
+        }
+
+        function renderDashboard() {
+            const totalItems = KNOWLEDGE_BASE.reduce((acc, cat) => acc + cat.items.length, 0);
+            const sqlItems = KNOWLEDGE_BASE.reduce((acc, cat) => acc + cat.items.filter(i => i.type === 'SQL').length, 0);
+            const procItems = KNOWLEDGE_BASE.reduce((acc, cat) => acc + cat.items.filter(i => i.type === 'Procedure').length, 0);
+
+            let html = `
+                <div class="animate-fade-in-up">
+                    <div class="mb-10 text-center md:text-left">
+                        <h1 class="text-4xl font-extrabold text-slate-900 mb-3 tracking-tight">Centro de Gestión</h1>
+                        <p class="text-lg text-slate-500">Base de conocimiento técnica centralizada.</p>
+                    </div>
+
+                    <!-- Stats -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center space-x-4">
+                            <div class="p-3 bg-blue-100 text-blue-600 rounded-lg">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500 font-medium">Total Recursos</p>
+                                <h3 class="text-2xl font-bold text-gray-900">${totalItems}</h3>
+                            </div>
+                        </div>
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center space-x-4">
+                            <div class="p-3 bg-purple-100 text-purple-600 rounded-lg">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500 font-medium">Consultas SQL</p>
+                                <h3 class="text-2xl font-bold text-gray-900">${sqlItems}</h3>
+                            </div>
+                        </div>
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center space-x-4">
+                            <div class="p-3 bg-orange-100 text-orange-600 rounded-lg">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500 font-medium">Procedimientos</p>
+                                <h3 class="text-2xl font-bold text-gray-900">${procItems}</h3>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                        <svg class="w-5 h-5 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"></path></svg>
+                        Acceso Rápido a Módulos
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-10">
+                        ${KNOWLEDGE_BASE.map(cat => `
+                            <div onclick="navigate('${cat.id}')" class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 cursor-pointer hover:shadow-lg hover:border-blue-300 hover:-translate-y-1 transition-all group duration-300 flex items-start space-x-4 h-full">
+                                <div class="p-3 rounded-lg ${cat.color} bg-opacity-10 text-opacity-100 flex-shrink-0">
+                                    <div class="${cat.color.replace('bg-', 'text-')} font-bold">
+                                        ${ICONS[cat.icon]}
+                                    </div>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <h3 class="text-base font-bold text-gray-800 mb-1 group-hover:text-blue-600 transition-colors truncate">${cat.title}</h3>
+                                    <p class="text-xs text-gray-500">${cat.items.length} páginas</p>
+                                </div>
+                                <svg class="w-5 h-5 text-gray-300 self-center group-hover:text-blue-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+            els.contentArea.innerHTML = html;
+        }
+
+        function renderCategoryView(catId) {
+            const cat = KNOWLEDGE_BASE.find(c => c.id === catId);
+            if (!cat) return;
+
+            els.contentArea.innerHTML = `
+                <div class="animate-fade-in-up">
+                    <nav class="flex items-center space-x-2 text-sm text-gray-500 mb-6 bg-white px-4 py-2 rounded-lg shadow-sm w-fit">
+                        <button onclick="navigate('dashboard')" class="hover:text-blue-600 flex items-center transition-colors">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                            Inicio
+                        </button>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                        <span class="text-gray-800 font-semibold">${cat.title}</span>
+                    </nav>
+
+                    <div class="flex items-center space-x-4 mb-8 mt-4">
+                        <div class="p-4 rounded-2xl ${cat.color} text-white shadow-lg">
+                            ${ICONS[cat.icon]}
+                        </div>
+                        <div>
+                            <h1 class="text-3xl font-bold text-gray-900">${cat.title}</h1>
+                            <p class="text-gray-500 text-lg">Explorando páginas del módulo</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 gap-4">
+                        ${cat.items.map(item => `
+                            <div onclick="showDetail('${item.id}', '${cat.id}')" class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:border-blue-300 hover:shadow-lg hover:-translate-y-0.5 cursor-pointer transition-all group duration-200">
+                                <div class="flex justify-between items-start">
+                                    <div class="flex-1 pr-4">
+                                        <div class="flex items-center space-x-3 mb-2 flex-wrap gap-y-2">
+                                            <h3 class="text-lg font-bold text-gray-800 group-hover:text-blue-600 transition-colors">${item.title}</h3>
+                                            <span class="text-xs px-2.5 py-0.5 rounded-full font-medium ${item.type === 'SQL' ? 'bg-blue-50 text-blue-600' : item.type === 'Procedure' ? 'bg-purple-50 text-purple-600' : 'bg-gray-100 text-gray-800'}">
+                                                ${item.type}
+                                            </span>
+                                        </div>
+                                        <p class="text-gray-500 mb-4 line-clamp-2">${item.description || item.note || ''}</p>
+                                    </div>
+                                    <div class="self-center">
+                                        <div class="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors">
+                                            <svg class="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderDetailView(itemId, catId) {
+            const cat = KNOWLEDGE_BASE.find(c => c.id === catId);
+            const item = cat.items.find(i => i.id === itemId);
+            
+            // Highlight Code Logic
+            const highlightCode = (str) => {
+                if (!str) return '';
+                return str.split('\n').map(line => {
+                    if (line.trim().startsWith('--') || line.trim().startsWith('//')) {
+                        return `<div class="code-comment">${line}</div>`;
+                    }
+                    return `<div>${line.replace(/(\b(SELECT|FROM|WHERE|AND|OR|UPDATE|SET|INSERT|INTO|VALUES|JOIN|LEFT|RIGHT|INNER|ON|GROUP|BY|ORDER|HAVING|LIMIT|UNION|CASE|WHEN|THEN|ELSE|END|NOT|EXISTS|DISTINCT|AS|NULL)\b)/gi, '<span class="code-keyword">$1</span>')
+                                      .replace(/(\b(NOW|COUNT|MAX|MIN|AVG|SUM|CONCAT|IF|IFNULL|DATE_FORMAT|DATEDIFF|ADDDATE|SUBSTR|CAST|AES_DECRYPT|AES_ENCRYPT)\b)/gi, '<span class="code-function">$1</span>')}</div>`;
+                }).join('');
+            };
+
+            const safeContent = item.content ? item.content.replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
+
+            els.contentArea.innerHTML = `
+                <div class="animate-fade-in-up">
+                    <nav class="flex items-center space-x-2 text-sm text-gray-500 mb-6 bg-white px-4 py-2 rounded-lg shadow-sm w-fit">
+                        <button onclick="navigate('dashboard')" class="hover:text-blue-600 flex items-center transition-colors">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                            Inicio
+                        </button>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                        <button onclick="navigate('${cat.id}')" class="hover:text-blue-600 font-medium transition-colors">${cat.title}</button>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                        <span class="text-gray-800 font-semibold truncate max-w-xs">${item.title}</span>
+                    </nav>
+
+                    <div class="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+                        <div class="border-b border-gray-100 bg-gray-50/80 p-6 flex justify-between items-start sticky top-0 z-10 backdrop-blur-md">
+                            <div class="w-full">
+                                <div class="flex flex-col md:flex-row md:items-center md:space-x-3 mb-2">
+                                    <h2 class="text-2xl font-bold text-gray-800">${item.title}</h2>
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium mt-2 md:mt-0 w-fit ${item.type === 'SQL' ? 'bg-blue-100 text-blue-800' : item.type === 'Procedure' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'}">
+                                        ${item.type}
+                                    </span>
+                                </div>
+                                <div class="flex gap-2 flex-wrap">
+                                    ${item.tags ? item.tags.map(tag => `<span class="text-xs bg-white border border-gray-200 text-gray-600 px-2 py-0.5 rounded shadow-sm">#${tag}</span>`).join('') : ''}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="p-8 space-y-8">
+                            ${(item.description || item.note) ? `
+                                <div>
+                                    <h4 class="text-xs uppercase tracking-wider text-gray-500 font-bold mb-3 flex items-center">
+                                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                        Información
+                                    </h4>
+                                    <div class="bg-blue-50/50 p-5 rounded-xl border border-blue-100/50 flex flex-col gap-4">
+                                        ${item.description ? `
+                                            <div class="flex items-start text-gray-700 leading-relaxed">
+                                                <svg class="w-5 h-5 text-blue-500 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                                <p>${item.description}</p>
+                                            </div>
+                                        ` : ''}
+                                        ${item.note ? `
+                                            <div class="flex items-start text-sm text-yellow-800 bg-yellow-50 p-3 rounded-lg border border-yellow-200/60">
+                                                <svg class="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                                                <p class="whitespace-pre-line">${item.note}</p>
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                </div>
+                            ` : ''}
+
+                            ${item.content ? `
+                                <div>
+                                    <div class="flex justify-between items-center mb-3">
+                                        <h4 class="text-xs uppercase tracking-wider text-gray-500 font-bold flex items-center">
+                                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                            Código Técnico
+                                        </h4>
+                                        <button onclick="copyToClipboard(\`${safeContent.replace(/`/g, '\\`').replace(/\$/g, '\\$')}\`)" class="flex items-center px-4 py-2 text-xs font-bold rounded-lg transition-all shadow-sm bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300">
+                                            <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+                                            Copiar
+                                        </button>
+                                    </div>
+                                    <div class="relative group shadow-md rounded-xl">
+                                        <pre class="bg-slate-900 text-gray-100 p-6 rounded-xl overflow-x-auto text-sm font-mono leading-6 border border-slate-700 shadow-inner custom-scrollbar relative">
+                                            <div class="absolute top-0 left-0 bg-slate-800 text-xs text-gray-400 px-3 py-1 rounded-br-lg font-mono">SQL / Code</div>
+                                            <code class="block mt-4">${highlightCode(safeContent)}</code>
+                                        </pre>
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderSearchResults() {
+            const term = state.searchTerm.toLowerCase();
+            const results = [];
+            KNOWLEDGE_BASE.forEach(cat => {
+                cat.items.forEach(item => {
+                    if (
+                        item.title.toLowerCase().includes(term) ||
+                        (item.description && item.description.toLowerCase().includes(term)) ||
+                        (item.content && item.content.toLowerCase().includes(term)) ||
+                        (item.note && item.note.toLowerCase().includes(term))
+                    ) {
+                        results.push({...item, categoryTitle: cat.title, categoryColor: cat.color, categoryId: cat.id});
+                    }
+                });
+            });
+
+            const highlight = (text) => {
+                if (!text) return '';
+                const parts = text.split(new RegExp(`(${state.searchTerm})`, 'gi'));
+                return parts.map(part => part.toLowerCase() === term ? `<span class="highlight-bg">${part}</span>` : part).join('');
+            };
+
+            els.contentArea.innerHTML = `
+                <div class="animate-fade-in-up">
+                    <h2 class="text-xl font-bold text-gray-800 mb-6 flex items-center">
+                        <svg class="w-5 h-5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                        Resultados para "<span class="text-blue-600">${state.searchTerm}</span>"
+                    </h2>
+                    ${results.length === 0 ? `
+                        <div class="text-center py-20 bg-gray-50 rounded-xl border-dashed border-2 border-gray-200">
+                            <p class="text-gray-500">No se encontraron resultados.</p>
+                        </div>
+                    ` : `
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            ${results.map(item => `
+                                <div onclick="showDetail('${item.id}', '${item.categoryId}')" class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md cursor-pointer transition-all group">
+                                    <div class="flex justify-between items-start">
+                                        <div>
+                                            <div class="flex items-center space-x-2 mb-2">
+                                                <span class="text-xs px-2 py-0.5 rounded font-medium ${item.categoryColor.replace('bg-', 'bg-').replace('500', '100').replace('600', '100')} ${item.categoryColor.replace('bg-', 'text-').replace('500', '800').replace('600', '800')}">
+                                                    ${item.categoryTitle}
+                                                </span>
+                                                <h3 class="font-bold text-gray-800 group-hover:text-blue-600 transition-colors">${highlight(item.title)}</h3>
+                                            </div>
+                                            <p class="text-sm text-gray-500 line-clamp-2">${highlight(item.description || item.note || 'Sin descripción')}</p>
+                                        </div>
+                                        <svg class="w-5 h-5 text-gray-300 group-hover:text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `}
+                </div>
+            `;
+        }
+
+        // --- ACTIONS & UTILS ---
+
+        function navigate(tabId) {
+            state.activeTab = tabId;
+            state.searchTerm = '';
+            state.selectedItem = null;
+            els.searchInput.value = '';
+            
+            // Close mobile menu
+            if(state.isMenuOpen) {
+                toggleMobileMenu();
+            }
+
+            renderSidebar(); // Update active state
+            if (tabId === 'dashboard') {
+                renderDashboard();
+            } else {
+                renderCategoryView(tabId);
+            }
+            els.mainScroll.scrollTop = 0;
+        }
+
+        function showDetail(itemId, catId) {
+            state.selectedItem = itemId;
+            renderDetailView(itemId, catId);
+            els.mainScroll.scrollTop = 0;
+        }
+
+        function copyToClipboard(text) {
+            // Decode simple entities if necessary or use textarea hack
+            const textarea = document.createElement('textarea');
+            textarea.value = text.replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            
+            showToast("Contenido copiado al portapapeles");
+        }
+
+        function showToast(msg) {
+            const toast = document.createElement('div');
+            toast.className = "bg-slate-800 text-white px-6 py-3 rounded-lg shadow-xl flex items-center space-x-3 animate-fade-in-up";
+            toast.innerHTML = `<svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg><span class="font-medium">${msg}</span>`;
+            els.toastContainer.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function toggleMobileMenu() {
+            state.isMenuOpen = !state.isMenuOpen;
+            if (state.isMenuOpen) {
+                els.sidebar.classList.remove('-translate-x-full');
+                els.sidebarOverlay.classList.remove('hidden');
+            } else {
+                els.sidebar.classList.add('-translate-x-full');
+                els.sidebarOverlay.classList.add('hidden');
+            }
+        }
+
+        // --- CHAT LOGIC ---
+        function addChatMessage(text, sender) {
+            const div = document.createElement('div');
+            div.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
+            div.innerHTML = `
+                <div class="max-w-[85%] rounded-2xl px-4 py-3 text-sm shadow-sm ${sender === 'user' ? 'bg-blue-600 text-white rounded-br-none' : 'bg-white text-gray-800 border border-gray-200 rounded-bl-none'}">
+                    <p class="whitespace-pre-wrap">${text}</p>
+                </div>
+            `;
+            els.chatMessages.appendChild(div);
+            // Auto scroll
+            els.chatMessages.scrollTop = els.chatMessages.scrollHeight;
+        }
+
+        function showTypingIndicator() {
+            const div = document.createElement('div');
+            div.id = 'typing-indicator';
+            div.className = 'flex justify-start';
+            div.innerHTML = `
+                <div class="bg-white border border-gray-200 rounded-2xl rounded-bl-none px-4 py-3 shadow-sm flex items-center space-x-1">
+                    <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce-dot" style="animation-delay: 0ms"></div>
+                    <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce-dot" style="animation-delay: 150ms"></div>
+                    <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce-dot" style="animation-delay: 300ms"></div>
+                </div>
+            `;
+            els.chatMessages.appendChild(div);
+            els.chatMessages.scrollTop = els.chatMessages.scrollHeight;
+        }
+
+        function removeTypingIndicator() {
+            const el = document.getElementById('typing-indicator');
+            if(el) el.remove();
+        }
+
+        function handleChatSend() {
+            const text = els.chatInput.value.trim();
+            if (!text) return;
+            
+            addChatMessage(text, 'user');
+            els.chatInput.value = '';
+            
+            showTypingIndicator();
+
+            // Mock AI Response
+            setTimeout(() => {
+                removeTypingIndicator();
+                const lowerInput = text.toLowerCase();
+                let foundItems = [];
+                
+                KNOWLEDGE_BASE.forEach(cat => {
+                    cat.items.forEach(item => {
+                        if (
+                            item.title.toLowerCase().includes(lowerInput) ||
+                            (item.tags && item.tags.some(t => t.toLowerCase().includes(lowerInput)))
+                        ) {
+                            foundItems.push(item);
+                        }
+                    });
+                });
+
+                let response = "Lo siento, no encontré información específica. ¿Podrías ser más concreto?";
+                
+                if (foundItems.length > 0) {
+                    const links = foundItems.slice(0, 3).map(i => `• ${i.title}`).join('\n');
+                    response = `He encontrado ${foundItems.length} coincidencias:\n\n${links}`;
+                } else if (lowerInput.includes('hola')) {
+                    response = "¡Hola! Estoy listo para ayudarte a buscar información técnica.";
+                }
+
+                addChatMessage(response, 'bot');
+            }, 1500);
+        }
+
+        // --- EVENT LISTENERS ---
+        
+        els.mobileMenuBtn.addEventListener('click', toggleMobileMenu);
+        els.sidebarOverlay.addEventListener('click', toggleMobileMenu);
+
+        els.searchInput.addEventListener('input', (e) => {
+            state.searchTerm = e.target.value;
+            if (state.searchTerm) {
+                renderSearchResults();
+            } else {
+                if (state.activeTab === 'dashboard') renderDashboard();
+                else renderCategoryView(state.activeTab);
+            }
+        });
+
+        // Chat Listeners
+        els.chatFab.addEventListener('click', () => {
+            els.chatWindow.classList.toggle('hidden');
+            els.chatFab.classList.toggle('rotate-90');
+            els.chatFab.classList.toggle('bg-gray-700');
+            els.chatFab.classList.toggle('bg-gradient-to-r');
+            // Toggle Icon
+            if(els.chatWindow.classList.contains('hidden')) {
+                 els.chatFab.innerHTML = '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>';
+            } else {
+                 els.chatFab.innerHTML = '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
+            }
+        });
+
+        els.closeChatBtn.addEventListener('click', () => {
+            els.chatWindow.classList.add('hidden');
+            // Reset FAB style manually
+            els.chatFab.classList.remove('rotate-90', 'bg-gray-700');
+            els.chatFab.classList.add('bg-gradient-to-r');
+            els.chatFab.innerHTML = '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>';
+        });
+
+        els.sendChatBtn.addEventListener('click', handleChatSend);
+        els.chatInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') handleChatSend();
+        });
+
+        // --- INIT ---
+        renderSidebar();
+        renderDashboard();
+
+    </script>
+</body>
+</html>
